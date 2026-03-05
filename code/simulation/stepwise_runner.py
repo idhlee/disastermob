@@ -9,26 +9,6 @@ from model import LLMModel
 import re
 
 # ==============================================================================
-# RAM Memory Holder (Preventing Job kill by HPC for low GPU usage)
-# ==============================================================================
-RAM_HOLDER_LIST = []
-
-def ram_allocator_loop(size_gb=1.0):
-    global RAM_HOLDER_LIST
-    byte_size = int(size_gb * (1024**3))    
-    num_elements = byte_size // 8 
-    
-    try:
-        big_list = [0] * num_elements 
-        RAM_HOLDER_LIST.append(big_list)        
-        while True:
-            time.sleep(60) 
-    except Exception as e:
-
-def start_memory_holder_thread(size_gb=1.0):
-    threading.Thread(target=ram_allocator_loop, args=(size_gb,), daemon=True).start()
-    time.sleep(1)
-# ==============================================================================
 
 if len(sys.argv) > 1:
     only_run_exp = sys.argv[1]
@@ -84,7 +64,6 @@ for exp_name, included_keys in STEPWISE_EXPERIMENTS.items():
     df = pd.read_csv(DATA_PATH)
 
     model = LLMModel(df=df, included_keys=included_keys)
-    start_memory_holder_thread(size_gb=1.0) 
 
     for step in range(1, NUM_STEPS + 1):
         print(f"\n Step {step} Start\n") 
