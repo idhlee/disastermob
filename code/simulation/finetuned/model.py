@@ -18,7 +18,7 @@ os.environ["HF_DATASETS_CACHE"] = "*/hf_cache"
 
 BASE_MODEL_PATH = "*/llama-3.1-8b-instruct"
 
-print("Loading vLLM one time (singleton)...")
+print("Loading vLLM...")
 print(f"Model path: {BASE_MODEL_PATH}")
 print(f"vLLM cache: */vllm_cache")
 print(f"HF cache: */hf_cache")
