@@ -42,7 +42,7 @@ The code was developed using Python 3.10. The main dependencies include:
 - numpy
 
 
-- ### Fine-tuning LLMs
+### Fine-tuning LLMs
 
 LoRA-based fine-tuning of the LLM agents is implemented in:
 
