@@ -175,7 +175,7 @@ class LLMAgent(Agent):
         print(f"\n================= SYSTEM MESSAGE =================\n")
         print(system_message)
 
-        print(f"\n🔹 Prompt for Agent {self.uid}:\n{prompt}\n")
+        print(f"\n Prompt for Agent {self.uid}:\n{prompt}\n")
 
         t0 = time.perf_counter()
         output = llm.generate(prompt, sampling_params=sampling_params, use_tqdm=False)[0]
@@ -184,7 +184,7 @@ class LLMAgent(Agent):
         response = output.outputs[0].text if hasattr(output.outputs[0], "text") else ""
         self.generated_response = response
 
-        print(f"🔹 Response:\n{response}\n⏱ Time: {t1 - t0:.2f}s")
+        print(f" Response:\n{response}\n⏱ Time: {t1 - t0:.2f}s")
 
         match = re.search(r"Final answer:\s*(Evacuate|Not evacuate)", response, re.IGNORECASE)
         final = match.group(1).strip().lower() if match else "unknown"
@@ -192,9 +192,9 @@ class LLMAgent(Agent):
         self.evacuation_status = (final == "evacuate")
 
         if self.evacuation_status:
-            print(f"🚨 Agent {self.uid} has evacuated!")
+            print(f" Agent {self.uid} has evacuated!")
         else:
-            print(f"✅ Agent {self.uid} stays.")
+            print(f" Agent {self.uid} stays.")
 
     def step(self):
         if self.evacuation_status:
