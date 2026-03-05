@@ -10,20 +10,16 @@ from vllm.lora.request import LoRARequest
 from transformers import AutoTokenizer
 
 # ==========================================
-#  캐시 디렉토리 설정 - scratch 고정 경로
-# ==========================================
-os.environ["VLLM_CACHE_ROOT"] = "/scratch/dl5683/vllm_cache"
-os.environ["HF_HOME"] = "/scratch/dl5683/hf_cache"
-os.environ["TRANSFORMERS_CACHE"] = "/scratch/dl5683/hf_cache"
-os.environ["HF_DATASETS_CACHE"] = "/scratch/dl5683/hf_cache"
+os.environ["VLLM_CACHE_ROOT"] = "*/vllm_cache"
+os.environ["HF_HOME"] = "*/hf_cache"
+os.environ["TRANSFORMERS_CACHE"] = "*/hf_cache"
+os.environ["HF_DATASETS_CACHE"] = "*/hf_cache"
 
 torch.cuda.empty_cache()
 
 # ==========================================
-#  모델 설정
-# ==========================================
-BASE_MODEL_PATH = "/scratch/dl5683/llm/llama-3.1-8b-instruct"
-LORA_MODEL_PATH = "/scratch/dl5683/pytorch-example/LoRA/lora_models/30_percent_newnew"
+BASE_MODEL_PATH = "*/llama-3.1-8b-instruct"
+LORA_MODEL_PATH = "*/lora_models/llama_3_1_30_percent_newnew"
 
 sampling_params = SamplingParams(
     max_tokens=1024,
