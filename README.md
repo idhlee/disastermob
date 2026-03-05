@@ -32,12 +32,12 @@ README.md                       # project documentation
 
 The code was developed using Python 3.10. The main dependencies include:
 
+- mesa
 - torch
 - transformers
 - peft
 - accelerate
 - vllm
-- mesa
 - pandas
 - numpy
 
