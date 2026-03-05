@@ -9,15 +9,15 @@ from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
 # ==========================================
-os.environ["VLLM_CACHE_ROOT"] = "/scratch/dl5683/vllm_cache"
-os.environ["HF_HOME"] = "/scratch/dl5683/hf_cache"
-os.environ["TRANSFORMERS_CACHE"] = "/scratch/dl5683/hf_cache"
-os.environ["HF_DATASETS_CACHE"] = "/scratch/dl5683/hf_cache"
+os.environ["VLLM_CACHE_ROOT"] = "*/vllm_cache"
+os.environ["HF_HOME"] = "*/hf_cache"
+os.environ["TRANSFORMERS_CACHE"] = "*/hf_cache"
+os.environ["HF_DATASETS_CACHE"] = "*/hf_cache"
 
 torch.cuda.empty_cache()
 
 # ==========================================
-MODEL_NAME = "/scratch/dl5683/llm/llama-3.1-8b-instruct"
+MODEL_NAME = "*/llama-3.1-8b-instruct"
 
 sampling_params = SamplingParams(
     max_tokens=1024,
