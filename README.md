@@ -1,5 +1,3 @@
-## LLM-ABM Evacuation Simulation
-
 Code for the paper:
 "Behavioral Fine-Tuning of LLM Agents Improves Predictability of Disaster Evacuation Decisions"
 
