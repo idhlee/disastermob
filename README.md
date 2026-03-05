@@ -8,12 +8,22 @@ using large language model (LLM) agents and mobility-based personas.
 ### Repository Structure
 code/
 ├── LoRA/
-│   ├── LoRA_training.py        # LoRA fine-tuning script
-│   └── LoRA_training.slurm     # SLURM job script for HPC training
+│   ├── LoRA_training.py        # LoRA fine-tuning of LLM
+│   └── LoRA_training.slurm     
 │
 └── simulation/
-    ├── finetuned/              # evacuation simulation using fine-tuned models
-    └── non-finetuned/          # evacuation simulation using base models
+    ├── non-finetuned/          # evacuation simulation using pre-trained LLM (Marshall Fire)
+    │   ├── agent.py
+    │   ├── agent_caldor.py
+    │   ├── model.py
+    │   ├── run_mesa.slurm
+    │   └── stepwise_runner.py
+    │
+    └── finetuned/              # evacuation simulation using fine-tuned LLM (Caldor Fire)
+        ├── agent.py
+        ├── model.py
+        ├── run_mesa.slurm
+        └── stepwise_runner.py
 
 LICENSE                         # repository license
 README.md                       # project documentation
