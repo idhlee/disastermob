@@ -1,14 +1,9 @@
-# =====================================================
-# 🔥 Step 1: 캐시 설정 (가장 먼저!)
-# =====================================================
 import os
-os.environ["HF_HOME"] = "/scratch/dl5683/hf_cache"
-os.environ["HF_DATASETS_CACHE"] = "/scratch/dl5683/hf_datasets"
-os.environ["TRANSFORMERS_CACHE"] = "/scratch/dl5683/transformers_cache"
-os.environ["TORCH_HOME"] = "/scratch/dl5683/torch_cache"
+os.environ["HF_HOME"] = "*/hf_cache"
+os.environ["HF_DATASETS_CACHE"] = "*/hf_datasets"
+os.environ["TRANSFORMERS_CACHE"] = "*/transformers_cache"
+os.environ["TORCH_HOME"] = "*/torch_cache"
 
-# =====================================================
-# 🔥 Step 2: Import
 # =====================================================
 from peft import LoraConfig, get_peft_model, TaskType
 import torch
@@ -20,17 +15,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 import sys
 
-print("Packages OK")
-print(f"NumPy version: {np.__version__}")
-print(f"PyTorch version: {torch.__version__}")
-
-# 다운로드된 파일 확인
-files = os.listdir("/scratch/dl5683/llama-3.1-8b")
-print(f"Total files: {len(files)}")
-print(files[:10])
-
-# =====================================================
-# 🔥 Tee: 화면 + 파일 동시 로그 저장 클래스
 # =====================================================
 class Tee:
     def __init__(self, filepath, mode="w"):
@@ -46,8 +30,6 @@ class Tee:
         self.stdout.flush()
 
 
-# =====================================================
-# 🔥 Custom Data Collator
 # =====================================================
 @dataclass
 class DataCollatorForCausalLM:
@@ -82,9 +64,7 @@ class DataCollatorForCausalLM:
 
 
 # =====================================================
-# 🔥 Step 3: Tokenizer 로드 (한 번만!)
-# =====================================================
-model_path = "/scratch/dl5683/llama-3.1-8b"
+model_path = "*/llama-3.1-8b"
 
 tokenizer = AutoTokenizer.from_pretrained(
     model_path, 
@@ -94,8 +74,6 @@ tokenizer = AutoTokenizer.from_pretrained(
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
-# =====================================================
-# 🔥 Step 4: Dataset 로드 & 전처리
 # =====================================================
 dataset = load_dataset("json", data_files="train30p.jsonl", split="train")
 split_dataset = dataset.train_test_split(test_size=0.2, seed=42)
@@ -155,12 +133,10 @@ lengths = [len(x["input_ids"]) for x in train_dataset]
 print(f"Seq len: min {min(lengths)}, max {max(lengths)}, avg {sum(lengths)/len(lengths):.1f}")
 
 # =====================================================
-# 🔥 Step 5: Model 로드 (cache_dir 명시!)
-# =====================================================
 config = AutoConfig.from_pretrained(
     model_path, 
     trust_remote_code=True,
-    cache_dir="/scratch/dl5683/transformers_cache"
+    cache_dir="*/transformers_cache"
 )
 
 model = AutoModelForCausalLM.from_pretrained(
@@ -169,11 +145,9 @@ model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True, 
     torch_dtype=torch.bfloat16,
     device_map="cuda",
-    cache_dir="/scratch/dl5683/transformers_cache"
+    cache_dir="*/transformers_cache"
 )
 
-# =====================================================
-# 🔥 Step 6: LoRA 설정
 # =====================================================
 lora_config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
@@ -194,30 +168,18 @@ print("LoRA model setup completed!")
 print(f"Model device: {next(model.parameters()).device}")
 
 # =====================================================
-# 🔥 Output directory & Logging setup
-# =====================================================
-output_dir = "/scratch/dl5683/pytorch-example/LoRA/lora_models/30_percent_newnew"
+output_dir = "*/lora_models/llama3_1_LoRA"
 os.makedirs(output_dir, exist_ok=True)
 
 log_path = f"{output_dir}/training_log.txt"
 sys.stdout = Tee(log_path, "w")
 
-print("===============================================")
-print(f" Logging all output to: {log_path}")
-print("===============================================")
-
-
-# =====================================================
-# 🔥 Data collator
 # =====================================================
 data_collator = DataCollatorForCausalLM(
     tokenizer=tokenizer,
     max_length=512
 )
 
-
-# =====================================================
-# 🔥 Training Arguments
 # =====================================================
 training_args = TrainingArguments(
     output_dir=output_dir,
@@ -245,8 +207,6 @@ training_args = TrainingArguments(
 
 
 # =====================================================
-# 🔥 Custom Callback for Clean Loss Logging
-# =====================================================
 from transformers import TrainerCallback
 
 class LossLoggingCallback(TrainerCallback):
@@ -261,7 +221,6 @@ class LossLoggingCallback(TrainerCallback):
             step = state.global_step
             epoch = state.epoch if state.epoch is not None else 0.0
             
-            # Training loss 로깅
             if 'loss' in logs:
                 train_loss = logs['loss']
                 self.loss_history.append({
@@ -272,10 +231,8 @@ class LossLoggingCallback(TrainerCallback):
                 })
                 print(f"{step:<10} {train_loss:<20.6f} {'N/A':<20} {epoch:<10.2f}")
             
-            # Validation loss 로깅
             if 'eval_loss' in logs:
                 val_loss = logs['eval_loss']
-                # 가장 최근 entry 업데이트 또는 새로 추가
                 if self.loss_history and self.loss_history[-1]['step'] == step:
                     self.loss_history[-1]['val_loss'] = val_loss
                     print(f"{step:<10} {'N/A':<20} {val_loss:<20.6f} {epoch:<10.2f}")
@@ -290,10 +247,9 @@ class LossLoggingCallback(TrainerCallback):
     
     def on_train_end(self, args, state, control, **kwargs):
         print("="*80)
-        print("\n📊 Training Summary")
+        print("\nTraining Summary")
         print("="*80)
         
-        # CSV 형식으로 저장
         csv_path = f"{args.output_dir}/loss_history.csv"
         with open(csv_path, 'w') as f:
             f.write("step,train_loss,val_loss,epoch\n")
@@ -301,11 +257,9 @@ class LossLoggingCallback(TrainerCallback):
                 train_loss = f"{entry['train_loss']:.6f}" if entry['train_loss'] is not None else ""
                 val_loss = f"{entry['val_loss']:.6f}" if entry['val_loss'] is not None else ""
                 f.write(f"{entry['step']},{train_loss},{val_loss},{entry['epoch']:.2f}\n")
-        print(f"✅ Loss history saved to: {csv_path}")
+        print(f"Loss history saved to: {csv_path}")
 
 
-# =====================================================
-# 🔥 Trainer
 # =====================================================
 trainer = Trainer(
     model=model,
@@ -317,16 +271,12 @@ trainer = Trainer(
 )
 
 # =====================================================
-# 🔥 Initial evaluation BEFORE training
-# =====================================================
 print("\n=== Initial Evaluation BEFORE Training ===")
 initial_eval = trainer.evaluate()
 print(f"Initial eval loss: {initial_eval['eval_loss']}")
 print("==========================================\n")
 
 
-# =====================================================
-# 🔥 Training Info
 # =====================================================
 print("Starting 30% scale LoRA training...")
 print(f"Training samples: {len(train_dataset)}")
@@ -338,13 +288,8 @@ if torch.cuda.is_available():
     print(f"GPU memory before training: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
 
 # =====================================================
-# 🔥 Train
-# =====================================================
 trainer.train()
 
-
-# =====================================================
-# 🔥 Save Model
 # =====================================================
 print("\nSaving 30% scale LoRA model...")
 model.save_pretrained(output_dir)
