@@ -63,7 +63,7 @@ class LLMModel(Model):
             self.schedule.add(agent)
             self.agent_list.append(agent)
 
-        self.fire_start_date = datetime.date(2021, 12, 30)
+        self.fire_start_date = datetime.date(2021, 8, 14)
         self.fire_current_date = self.fire_start_date
 
     def step(self):
