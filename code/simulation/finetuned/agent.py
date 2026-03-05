@@ -19,7 +19,7 @@ torch.cuda.empty_cache()
 
 # ==========================================
 BASE_MODEL_PATH = "*/llama-3.1-8b-instruct"
-LORA_MODEL_PATH = "*/lora_models/llama_3_1_30_percent_newnew"
+LORA_MODEL_PATH = "*/lora_models/llama3_1_LoRA"
 
 sampling_params = SamplingParams(
     max_tokens=1024,
@@ -29,8 +29,6 @@ sampling_params = SamplingParams(
     n=1
 )
 
-# ==========================================
-#  SYSTEM MESSAGE + INSTRUCTIONS
 # ==========================================
 system_message = (
     "You are a disaster behavior analyst. Your job is to assess whether an individual "
@@ -53,13 +51,11 @@ tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
 
 
 # ==========================================
-#  LLMAgent
-# ==========================================
 class LLMAgent(Agent):
     def __init__(self, unique_id, model_mesa, agent_data, included_keys, llm_engine):
         super().__init__(unique_id, model_mesa)
 
-        self.llm_engine = llm_engine  # 외부에서 주입
+        self.llm_engine = llm_engine
         self.uid = str(agent_data["persona_id"])
         self.agent_data = agent_data
 
@@ -77,8 +73,6 @@ class LLMAgent(Agent):
         self.evacuation_step = None
         self.generated_response = ""
 
-    # ==========================================
-    # Prompt 생성
     # ==========================================
     def generate_prompt(self):
 
@@ -114,7 +108,7 @@ class LLMAgent(Agent):
         )
 
         # ---------------------------------------------------------
-        # Neighborhood BEFORE (A2, A3, A4)
+        # Neighborhood Information
         # ---------------------------------------------------------
         neighborhood_before = []
 
@@ -132,9 +126,6 @@ class LLMAgent(Agent):
                 f"[A4] Their neighborhood has a {white_cat} proportion of white population. [/A4]"
             )
 
-        # ---------------------------------------------------------
-        # Neighborhood AFTER (A6 alert)
-        # ---------------------------------------------------------
         neighborhood_after = []
 
         if "A6" in self.included_keys:
@@ -174,7 +165,7 @@ class LLMAgent(Agent):
         return prompt
 
     # ==========================================
-    # LLM 호출 및 판단
+    # LLM Calling
     # ==========================================
     def check_evacuation(self):
         prompt = self.generate_prompt()
@@ -183,7 +174,7 @@ class LLMAgent(Agent):
         print(f"\n================= SYSTEM MESSAGE =================\n")
         print(system_message)
 
-        print(f"\n🔹 Prompt for Agent {self.uid}:\n{prompt}\n")
+        print(f"\n Prompt for Agent {self.uid}:\n{prompt}\n")
 
         t0 = time.perf_counter()
         output = self.llm_engine.generate(
@@ -197,7 +188,7 @@ class LLMAgent(Agent):
         response = output.outputs[0].text if hasattr(output.outputs[0], "text") else ""
         self.generated_response = response
 
-        print(f"🔹 Response:\n{response}\n⏱ Time: {t1 - t0:.2f}s")
+        print(f" Response:\n{response}\n⏱ Time: {t1 - t0:.2f}s")
 
         match = re.search(r"Final answer:\s*(Evacuate|Not evacuate)", response, re.IGNORECASE)
         final = match.group(1).strip().lower() if match else "unknown"
@@ -205,9 +196,9 @@ class LLMAgent(Agent):
         self.evacuation_status = (final == "evacuate")
 
         if self.evacuation_status:
-            print(f"🚨 Agent {self.uid} has evacuated!")
+            print(f" Agent {self.uid} has evacuated!")
         else:
-            print(f"✅ Agent {self.uid} stays.")
+            print(f" Agent {self.uid} stays.")
 
     def step(self):
         if self.evacuation_status:
