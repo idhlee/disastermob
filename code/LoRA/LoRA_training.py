@@ -69,7 +69,7 @@ model_path = "*/llama-3.1-8b"
 tokenizer = AutoTokenizer.from_pretrained(
     model_path, 
     trust_remote_code=True,
-    cache_dir="/scratch/dl5683/transformers_cache"
+    cache_dir="*/transformers_cache"
 )
 if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
