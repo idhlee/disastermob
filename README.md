@@ -13,7 +13,7 @@ code/
 │   ├── LoRA_training.py
 │   └── LoRA_training.slurm
 │
-└── simulation/
+└── Simulation/
     ├── non-finetuned/
     │   ├── agent.py
     │   ├── agent_caldor.py
