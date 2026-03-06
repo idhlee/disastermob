@@ -6,27 +6,30 @@ This repository contains the code used to simulate evacuation behavior using lar
 The repository includes scripts for LoRA fine-tuning of LLMs and agent-based evacuation simulations used in the experiments.
 
 ### Repository Structure
+
+```text
 code/
 ├── LoRA/
-│   ├── LoRA_training.py        
-│   └── LoRA_training.slurm     
+│   ├── LoRA_training.py
+│   └── LoRA_training.slurm
 │
 └── simulation/
-    ├── non-finetuned/          
+    ├── non-finetuned/
     │   ├── agent.py
     │   ├── agent_caldor.py
     │   ├── model.py
     │   ├── run_mesa.slurm
     │   └── stepwise_runner.py
     │
-    └── finetuned/              
+    └── finetuned/
         ├── agent.py
         ├── model.py
         ├── run_mesa.slurm
         └── stepwise_runner.py
 
-LICENSE                         
-README.md                       
+LICENSE
+README.md
+```             
 
 ### Requirements
 
