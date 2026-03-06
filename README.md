@@ -8,25 +8,25 @@ The repository includes scripts for LoRA fine-tuning of LLMs and agent-based eva
 ### Repository Structure
 code/
 ├── LoRA/
-│   ├── LoRA_training.py        # LoRA fine-tuning of LLM
+│   ├── LoRA_training.py        
 │   └── LoRA_training.slurm     
 │
 └── simulation/
-    ├── non-finetuned/          # evacuation simulation using pre-trained LLM (Marshall Fire)
+    ├── non-finetuned/          
     │   ├── agent.py
     │   ├── agent_caldor.py
     │   ├── model.py
     │   ├── run_mesa.slurm
     │   └── stepwise_runner.py
     │
-    └── finetuned/              # evacuation simulation using fine-tuned LLM (Caldor Fire)
+    └── finetuned/              
         ├── agent.py
         ├── model.py
         ├── run_mesa.slurm
         └── stepwise_runner.py
 
-LICENSE                         # repository license
-README.md                       # project documentation
+LICENSE                         
+README.md                       
 
 ### Requirements
 
