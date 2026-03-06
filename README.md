@@ -18,14 +18,14 @@ code/
     │   ├── agent.py
     │   ├── agent_caldor.py
     │   ├── model.py
-    │   ├── run_mesa.slurm
-    │   └── stepwise_runner.py
+    │   ├── stepwise_runner.py
+    │   └── run_mesa.slurm
     │
     └── finetuned/
         ├── agent.py
         ├── model.py
-        ├── run_mesa.slurm
-        └── stepwise_runner.py
+        ├── stepwise_runner.py
+        └── run_mesa.slurm
 
 LICENSE
 README.md
