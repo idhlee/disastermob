@@ -2,7 +2,7 @@
 # Override them with DATA_DIR, JSONL_DIR, MODEL_PATH, and OUTPUT_ROOT as needed.
 
 paths:
-  data_dir: "./data"
-  jsonl_dir: "./data/jsonl"
-  model_path: "./models/llama-3.1-8b-instruct"
+  data_dir: "../../data/synthetic/csv"
+  jsonl_dir: "../../data/synthetic/jsonl"
+  model_path: "../../models/llama-3.1-8b-instruct"
   output_root: "./outputs/training"
