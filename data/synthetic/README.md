@@ -86,8 +86,6 @@ They are included to demonstrate the data structure, prompt construction, traini
 
 The synthetic datasets are provided as illustrative examples of the data structure and computational workflows. Results obtained using these datasets may differ from those reported in the associated manuscript, as the original analyses were conducted using the underlying research datasets.
 
-Although the provided examples exercise the intended computational workflows, their results may differ from the manuscript's findings because they do not constitute the original research datasets.
-
 Reproducing the reported numerical results requires access to the corresponding underlying mobility datasets and the relevant model configurations and trained checkpoints.
 
 The original SafeGraph and Cuebiq mobility datasets are subject to data access and sharing restrictions and are not redistributed in this repository.
