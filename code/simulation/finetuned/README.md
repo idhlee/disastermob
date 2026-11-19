@@ -116,33 +116,28 @@ If the optional `evacuated` and `evacuation_label` columns are available, their 
 
 The simulation uses CSV inputs directly. The JSONL training files are not required for this inference workflow.
 
-## 5. Agent-Based Simulation
+## 5. Simulation Framework
 
-The agent-based simulation is implemented using Mesa.
+The simulation framework is implemented using Mesa and integrates fine-tuned LLMs to predict individual evacuation decisions during the Marshall Fire.
 
-Each row of the input dataset is represented by an `LLMAgent`, which contains the agent's lifestyle, mobility, neighborhood, and disaster-related attributes.
+Each individual is represented by an `LLMAgent`, which incorporates lifestyle, mobility, neighborhood, and disaster-related attributes.
 
-The model uses Mesa's `RandomActivation` scheduler to process agents.
+For each individual, the simulation follows these steps:
 
-For each agent:
+1. Construct a prompt using the individual's contextual information.
+2. Format the prompt using the model tokenizer's native chat template.
+3. Generate a response using the fine-tuned LLM.
+4. Extract the evacuation decision from the generated response.
+5. Record the predicted decision and the complete generated response.
 
-1. A prompt is constructed from the available contextual information.
-2. The prompt is formatted using the model tokenizer's native chat template.
-3. The fine-tuned LLM generates a response.
-4. The response is parsed to identify the evacuation decision.
-5. The prediction and generated response are recorded.
+The simulation is configured to evaluate the initial evacuation decision using a single simulation step.
 
-The current implementation simulates the initial evacuation decision using one simulation step (`num_steps: 1` in the configuration).
-
-The model classifies generated responses into three possible outcomes:
+The predicted evacuation decisions are categorized as:
 
 - `evacuate`
 - `not evacuate`
-- `unknown`
 
-The `unknown` category is assigned when a valid final answer cannot be extracted from the generated response.
-
-The simulation does not model subsequent movement trajectories or multi-step destination selection.
+The generated responses and corresponding evacuation predictions are saved for subsequent analysis.
 
 ## 6. Prompt Construction
 
