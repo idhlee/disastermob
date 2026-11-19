@@ -12,11 +12,11 @@ The training script is configured for:
 - **Fine-tuning method:** LoRA
 - **Task:** Causal language modeling
 - **Precision:** BF16
-- **Hardware:** NVIDIA H200 GPU
+- **GPU requirement:** NVIDIA H200
 
-The base model must be available locally before training. Its location is specified through `MODEL_PATH` or `training_config.yaml`.
+The base model is not included in this repository and must be obtained separately before training.
 
-The script loads the model from a local directory rather than downloading a model directly during training.
+The model is loaded from a local directory specified through `MODEL_PATH` or `training_config.yaml`. The training script does not automatically download the model or pin a remote Hugging Face revision. Users should use the intended model checkpoint consistently across experiments.
 
 ## 2. Directory Structure
 
@@ -28,32 +28,39 @@ LoRA/
 └── training_config.yaml
 ```
 
-The training pipeline uses the following datasets:
+The training pipeline uses the following datasets from the repository:
 
 ```text
-data/
-└── synthetic/
-    ├── csv/
-    │   ├── fold1_train.csv
-    │   ├── fold1_test.csv
-    │   └── ...
-    └── jsonl/
-        ├── fold1_train.jsonl
-        ├── fold2_train.jsonl
-        └── ...
+disastermob/
+├── code/
+│   └── LoRA/
+│       ├── README.md
+│       ├── train_lora.py
+│       ├── run_training.slurm
+│       └── training_config.yaml
+└── data/
+    └── synthetic/
+        ├── csv/
+        │   ├── fold1_train.csv
+        │   ├── fold1_test.csv
+        │   └── ...
+        └── jsonl/
+            ├── fold1_train.jsonl
+            ├── fold2_train.jsonl
+            └── ...
 ```
-
-The CSV and JSONL directories are configured independently through environment variables.
 
 ## 3. Data Requirements
 
 For each fold, the training pipeline requires:
 
 **CSV files**
+
 - `fold{n}_train.csv`
 - `fold{n}_test.csv`
 
 **JSONL files**
+
 - `fold{n}_train.jsonl`
 
 The training CSV must contain the following essential columns:
@@ -66,22 +73,28 @@ The training CSV must contain the following essential columns:
 
 Each training JSONL record must contain:
 
-- `System_message`
-- `Input1: Lifestyle`
-- `Input2: Environment`
-- `Input3: Disaster Information`
-- `Output`
+| Field | Description |
+|---|---|
+| `System_message` | System instructions defining the disaster evacuation prediction task. |
+| `Input1: Lifestyle` | Synthetic individual lifestyle and mobility information. |
+| `Input2: Environment` | Neighborhood socioeconomic and fire-related contextual information. |
+| `Input3: Disaster Information` | Disaster scenario description. |
+| `Output` | Ground-truth evacuation decision used for supervised training. |
 
 The `Output` field must contain one of the following labels:
 
 - `Final answer: Evacuate`
 - `Final answer: Not evacuate`
 
-**Data alignment**
+### Data Alignment
 
-The CSV and JSONL training files must contain exactly the same records in the same row order. The training script checks the record counts and validates the alignment of the first 32 records by default.
+The CSV and JSONL training files must contain exactly the same records in the same row order.
 
-The test CSV is used to verify geographic separation from the training data. Held-out test outcomes are not used for model fitting or checkpoint selection.
+The training script checks the record counts and validates the alignment of the first 32 records by default. The validation checks include lifestyle descriptions, evacuation labels, fire distance, and fire direction.
+
+The outer test CSV is also checked for geographic separation from the training data. Its tract identifiers are used to verify that training and test tracts do not overlap.
+
+Held-out test outcomes are not used for model fitting or checkpoint selection.
 
 ## 4. Five-Fold Spatial Holdout
 
@@ -90,12 +103,14 @@ The training pipeline uses five predefined outer folds, with geographic separati
 For each fold:
 
 1. The outer training and test partitions are loaded separately.
-2. The training partition is further divided into LoRA fitting and internal validation subsets.
+2. The outer training partition is further divided into LoRA fitting and internal checkpoint-validation subsets.
 3. The internal split is performed at the census tract level using `GroupShuffleSplit`.
-4. Approximately 80% of the outer-training tracts are used for LoRA fitting, while 20% are reserved for internal checkpoint validation.
-5. The outer test partition remains excluded from training and checkpoint selection.
+4. Approximately 80% of the outer-training tracts are used for LoRA fitting, while 20% are reserved for internal validation.
+5. The outer test partition remains excluded from model training and checkpoint selection.
 
-The internal validation data are used exclusively for monitoring training and selecting the best checkpoint.
+The internal validation data are used exclusively for monitoring training performance and selecting the best checkpoint.
+
+The random state for the internal split is determined by the fold-specific seed.
 
 ## 5. LoRA Training Configuration
 
@@ -117,6 +132,10 @@ The main training configuration is as follows:
 | Optimizer | AdamW |
 | Precision | BF16 |
 | Gradient checkpointing | Enabled |
+| Logging interval | 10 steps |
+| Evaluation interval | 300 steps |
+| Checkpoint saving interval | 300 steps |
+| Maximum saved checkpoints | 2 |
 
 The LoRA adapters are applied to the following modules:
 
@@ -128,18 +147,20 @@ The LoRA adapters are applied to the following modules:
 - `up_proj`
 - `down_proj`
 
-### Training objective
+### Training Objective
 
-The training pipeline uses full-sequence cross-entropy loss. All non-padding tokens in the formatted conversation, including system instructions, user inputs, and the assistant response, contribute to the training loss.
+The training pipeline uses full-sequence cross-entropy loss.
+
+All non-padding tokens in the formatted conversation, including system instructions, user inputs, and the assistant response, contribute to the training loss. Padding tokens are excluded from the loss calculation.
 
 The assistant's supervised response consists of the evacuation decision only:
 
 - `Final answer: Evacuate`
 - `Final answer: Not evacuate`
 
-Reasoning explanations are not included in the training targets. The experiment therefore evaluates whether the model can generate explanations at inference time while being fine-tuned on decision-only responses.
+Reasoning explanations are not included in the training targets. The experiment therefore examines whether the model can generate explanations at inference time while being fine-tuned on decision-only responses.
 
-The model's native chat template is used to format the training conversations.
+The model's native chat template is used to format the training conversations through `tokenizer.apply_chat_template()`.
 
 ## 6. Random Seeds and Checkpoint Selection
 
@@ -153,9 +174,21 @@ seed = 42 + fold
 
 Thus, folds 1–5 use seeds 43–47, respectively.
 
-The same fold-specific seed is used for model training and data-related randomization.
+The fold-specific seed is applied to model training and data-related randomization. The internal geographic split also uses the corresponding fold-specific random state.
 
-Checkpoint selection is based on the lowest internal validation loss (`eval_loss`). The training pipeline enables `load_best_model_at_end`, and the selected model is saved as `final_adapter/` for each fold.
+### Checkpoint Selection
+
+Checkpoint selection is based on the lowest internal validation loss (`eval_loss`).
+
+The training pipeline uses:
+
+- `load_best_model_at_end=True`
+- `metric_for_best_model="eval_loss"`
+- `greater_is_better=False`
+
+Evaluation and checkpoint saving are performed at the same step intervals.
+
+After training, the selected best model is saved as `final_adapter/` for each fold.
 
 The outer test partition is not used for checkpoint selection.
 
@@ -163,26 +196,67 @@ The outer test partition is not used for checkpoint selection.
 
 The training pipeline uses `training_config.yaml` to define portable default paths.
 
+All relative paths are resolved with respect to the location of `training_config.yaml`, not the current working directory.
+
+The default configuration is:
+
 ```yaml
+# Portable defaults. Paths are relative to this configuration file.
+# Override them with DATA_DIR, JSONL_DIR, MODEL_PATH, and OUTPUT_ROOT as needed.
+
 paths:
-  data_dir: "./data"
-  jsonl_dir: "./data/jsonl"
-  model_path: "./models/llama-3.1-8b-instruct"
+  data_dir: "../../data/synthetic/csv"
+  jsonl_dir: "../../data/synthetic/jsonl"
+  model_path: "../../models/llama-3.1-8b-instruct"
   output_root: "./outputs/training"
 ```
 
-These defaults can be overridden through environment variables:
+These defaults correspond to the repository directory structure.
+
+If the repository structure is maintained and the base model is placed in the specified location, the default paths can be used without modification.
+
+### Environment Variables
+
+The following environment variables can be used to override the default paths:
 
 | Variable | Description |
 |---|---|
 | `DATA_DIR` | Directory containing fold-specific CSV files. |
 | `JSONL_DIR` | Directory containing fold-specific JSONL files. |
 | `MODEL_PATH` | Local base-model directory. |
-| `OUTPUT_ROOT` | Directory for training outputs. |
+| `OUTPUT_ROOT` | Directory for saving training outputs. |
 | `TRAINING_CONFIG` | Path to the YAML configuration file. |
 | `CACHE_ROOT` | Root directory for model and dataset caches. |
 
-This allows the pipeline to run in different computing environments without modifying the training script.
+For example:
+
+```bash
+export DATA_DIR="/path/to/data/synthetic/csv"
+export JSONL_DIR="/path/to/data/synthetic/jsonl"
+export MODEL_PATH="/path/to/llama-3.1-8b-instruct"
+export OUTPUT_ROOT="/path/to/training/outputs"
+```
+
+Replace the example paths with the corresponding locations in your computing environment.
+
+Users do not need to modify the Python training script to change these paths.
+
+### Configuration for HPC Execution
+
+For Slurm-based execution, the provided `run_training.slurm` script uses environment variables to configure the data, model, output, and cache directories.
+
+The container image must be specified through `CONTAINER_IMAGE`.
+
+The following additional variables are available:
+
+| Variable | Description |
+|---|---|
+| `CONTAINER_RUNTIME` | Container runtime (default: `singularity`). |
+| `CONTAINER_IMAGE` | Path to the container image. |
+| `OVERLAY_FILE` | Optional container overlay file. |
+| `CONTAINER_ENV_SCRIPT` | Optional container environment initialization script. |
+
+The container image, runtime, GPU resources, and system-specific settings should be configured according to the target HPC environment.
 
 ## 8. Execution
 
@@ -190,7 +264,12 @@ This allows the pipeline to run in different computing environments without modi
 
 Refer to the repository-level `README.md`, `requirements.txt`, and `environment.yml` for installation instructions and Python dependencies.
 
-The training workflow requires a compatible CUDA environment, an NVIDIA H200 GPU, and access to the base model.
+The full training workflow requires:
+
+- A compatible CUDA environment.
+- An NVIDIA H200 GPU with BF16 support.
+- Access to the base model.
+- The required CSV and JSONL datasets.
 
 ### 8.2 Data Validation
 
@@ -200,6 +279,8 @@ Before training, validate the data for a specific fold:
 python train_lora.py --fold 1 --check-data-only
 ```
 
+This checks the required files, record counts, initial record alignment, and geographic separation without loading the model or requiring a GPU.
+
 ### 8.3 Preflight Check
 
 To check tokenizer formatting, data alignment, padding, and training argument compatibility:
@@ -208,7 +289,7 @@ To check tokenizer formatting, data alignment, padding, and training argument co
 python train_lora.py --fold 1 --preflight-only
 ```
 
-This performs a limited preflight check without loading the full training dataset or using a GPU.
+This checks a limited number of records using the actual tokenizer and training configuration without loading the full model or using a GPU. The base-model directory and tokenizer must be available.
 
 ### 8.4 Smoke Test
 
@@ -218,7 +299,9 @@ To execute a small end-to-end training test:
 python train_lora.py --fold 1 --test-mode
 ```
 
-The smoke test uses a limited data subset and a shortened training schedule.
+The smoke test uses a limited data subset, 32 training examples, 16 validation examples, and a shortened one-epoch training schedule.
+
+It is intended to verify that the training pipeline executes successfully before running the full experiment.
 
 ### 8.5 Full Training
 
@@ -230,6 +313,26 @@ python train_lora.py --fold 1
 
 To execute all five folds using the provided Slurm job array:
 
+First, navigate to the LoRA directory:
+
+```bash
+cd code/LoRA
+```
+
+Configure the dataset and model paths:
+
+```bash
+export DATA_DIR="$(realpath ../../data/synthetic/csv)"
+export JSONL_DIR="$(realpath ../../data/synthetic/jsonl)"
+export MODEL_PATH="/path/to/llama-3.1-8b-instruct"
+export OUTPUT_ROOT="$(pwd)/outputs/training"
+export CONTAINER_IMAGE="/path/to/container.sif"
+```
+
+Replace the model and container paths with the appropriate locations in your computing environment.
+
+Create the log directory and submit the job:
+
 ```bash
 mkdir -p slurm_logs
 sbatch run_training.slurm
@@ -237,7 +340,9 @@ sbatch run_training.slurm
 
 The Slurm script submits five fold-specific jobs using one GPU per job.
 
-The container image and relevant paths must be configured through the corresponding environment variables before submission.
+Each job independently trains its corresponding fold and saves the resulting adapter.
+
+The Slurm resource directives and container configuration may need to be adjusted for different HPC systems.
 
 ## 9. Output Structure
 
@@ -264,10 +369,11 @@ Important outputs include:
 
 - `final_adapter/`: Selected LoRA adapter and tokenizer files.
 - `checkpoints/`: Intermediate training checkpoints.
-- `loss_history.csv`: Training and validation loss history.
+- `training_log.txt`: Training execution log.
+- `loss_history.csv`: Training and internal validation loss history.
 - `tract_split_manifest.csv`: Geographic assignments for internal training, validation, and outer testing.
 - `run_config.json`: Fold-specific training configuration and data split information.
-- `metrics.json`: Training metrics, validation metrics, and selected checkpoint information.
+- `metrics.json`: Training metrics, internal validation metrics, and selected checkpoint information.
 
 The resulting adapters are used by the fine-tuned simulation pipeline in `code/simulation/finetuned/`.
 
@@ -275,6 +381,8 @@ The resulting adapters are used by the fine-tuned simulation pipeline in `code/s
 
 The provided implementation documents the training configuration, fold-specific random seeds, geographic data splitting, and internal validation-based checkpoint selection.
 
-Reproducing the original experimental results also requires the corresponding research datasets, the same base-model checkpoint, and compatible computational environments.
+The training pipeline is designed to demonstrate the LoRA fine-tuning workflow using the synthetic example datasets provided in this repository.
 
-The synthetic example datasets included in this repository are intended to demonstrate the training workflow and are not substitutes for the original research datasets.
+Results obtained using these synthetic datasets may differ from those reported in the associated manuscript, as the original analyses were conducted using the underlying research datasets.
+
+Reproducing the reported numerical results requires access to the corresponding research datasets, the same base-model checkpoint, and compatible computational environments.
