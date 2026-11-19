@@ -102,7 +102,8 @@ The computational results obtained using the synthetic example datasets may diff
 
 ## License
 
-See [LICENSE](LICENSE) for license information.
+This project is licensed under the MIT License.
+See the [LICENSE](LICENSE) file for details.
 
 ## Citation
 
