@@ -84,7 +84,7 @@ All datasets provided in this repository are synthetic example data.
 
 They are included to demonstrate the data structure, prompt construction, training procedures, and inference workflows implemented in this repository.
 
-**The synthetic datasets do not guarantee reproduction of the numerical results reported in the associated manuscript.**
+The synthetic datasets are provided as illustrative examples of the data structure and computational workflows. Results obtained using these datasets may differ from those reported in the associated manuscript, as the original analyses were conducted using the underlying research datasets.
 
 Although the provided examples exercise the intended computational workflows, their results may differ from the manuscript's findings because they do not constitute the original research datasets.
 
