@@ -16,7 +16,7 @@ The training script is configured for:
 
 The base model is not included in this repository and must be obtained separately before training.
 
-The model is loaded from a local directory specified through `MODEL_PATH` or `training_config.yaml`. The training script does not automatically download the model or pin a remote Hugging Face revision. Users should use the intended model checkpoint consistently across experiments.
+The base model used in this implementation is **Meta-Llama-3.1-8B-Instruct**. Users must obtain the model separately and specify the local model directory through `MODEL_PATH` or `training_config.yaml`. The training script loads the supplied local model files and does not download the model automatically. The model name identifies the model release, but a specific Hugging Face commit revision is not pinned in the script.
 
 ## 2. Directory Structure
 
@@ -256,6 +256,19 @@ The following additional variables are available:
 | `OVERLAY_FILE` | Optional container overlay file. |
 | `CONTAINER_ENV_SCRIPT` | Optional container environment initialization script. |
 
+### Slurm Path Configuration
+
+By default, `run_training.slurm` resolves the dataset paths relative to `BASE_DIR`, which is the Slurm submission directory (normally `code/LoRA/`):
+
+```bash
+DATA_DIR="${DATA_DIR:-${BASE_DIR}/../../data/synthetic/csv}"
+JSONL_DIR="${JSONL_DIR:-${BASE_DIR}/../../data/synthetic/jsonl}"
+```
+
+These paths match the repository's `data/synthetic/` structure. If the datasets are kept in their original locations, users do not need to change these default paths. If datasets are stored elsewhere, set `DATA_DIR` and `JSONL_DIR` before submitting the job.
+
+The base-model location, container image, optional overlay, and other cluster-specific settings must be configured for the user's computing environment.
+
 The container image, runtime, GPU resources, and system-specific settings should be configured according to the target HPC environment.
 
 ## 8. Execution
@@ -267,7 +280,7 @@ Refer to the repository-level `README.md`, `requirements.txt`, and `environment.
 The full training workflow requires:
 
 - A compatible CUDA environment.
-- An NVIDIA GPU with BF16 support (NVIDIA H200 recommended).
+- An NVIDIA H200 GPU with BF16 support (the current training script explicitly checks for H200 hardware).
 - Access to the Meta-Llama-3.1-8B-Instruct base model.
 - The synthetic CSV and JSONL datasets provided in this repository.
 - A compatible container runtime and container image for Slurm-based execution.
