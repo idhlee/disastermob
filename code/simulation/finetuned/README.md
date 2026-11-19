@@ -419,11 +419,9 @@ The output fields include:
 
 ### Experiment Summary
 
-Each `summary.csv` contains the corresponding experiment-level statistics.
+Each `summary.csv` contains the corresponding experiment-level statistics, including the number of agents, predicted evacuations, predicted non-evacuations, predicted evacuation rate, and inference seed.
 
-These include the number of agents, evacuated predictions, non-evacuated predictions, unparsed responses, predicted evacuation rate, and inference seed.
-
-The predicted evacuation rate is calculated among responses successfully parsed as either evacuate or not evacuate.
+The predicted evacuation rate is calculated as the proportion of predicted evacuations among the successfully classified evacuation decisions.
 
 ## 12. Reproducibility Notes
 
