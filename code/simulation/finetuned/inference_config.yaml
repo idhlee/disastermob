@@ -1,0 +1,89 @@
+
+# Configuration for fine-tuned Marshall Fire inference.
+
+paths:
+  model_path: "/path/to/Llama-3.1-8B-Instruct"
+  data_csv_template: "/path/to/data/fold{fold}_test.csv"
+  adapter_path_template: "/path/to/adapters/fold{fold}/final_adapter"
+  output_dir: "./outputs/fine_tuned"
+
+model:
+  dtype: "bfloat16"
+  trust_remote_code: true
+  local_files_only: true
+  enforce_eager: false
+  max_model_len: 6144
+  gpu_memory_utilization: 0.90
+  max_num_seqs: 64
+
+lora:
+  rank: 16
+
+generation:
+  max_tokens: 1024
+  temperature: 0.8
+  top_p: 0.85
+  top_k: 30
+
+data:
+  max_agents: null
+  id_columns:
+    - "persona_id"
+    - "geoid"
+    - "tract_id"
+
+run:
+  iteration: 1
+  base_seed: 6000
+  num_steps: 1
+
+prompt:
+  system_message: >-
+    You are a disaster behavior analyst. Your job is to assess whether an
+    individual would evacuate during a wildfire based on their lifestyle,
+    mobility patterns, residential environment, and available disaster
+    information. Be logical and realistic when evaluating decisions.
+
+  instruction_lifestyle: >-
+    Below is the individual's lifestyle and mobility pattern:
+
+  instruction_environment: >-
+    Below is a description of the neighborhood (census block group) where
+    the individual resides:
+
+  instruction_disaster: "Disaster scenario:"
+
+  instruction_task: >-
+    The individual may or may not choose to evacuate, depending on their
+    proximity to the fire, mobility routines, lifestyle, and personality cues.
+    Use all available information to make a realistic guess about whether they
+    will evacuate. Explain your reasoning first. Then, on a new line, give your
+    final answer in this exact format:
+    'Final answer: Evacuate' or 'Final answer: Not evacuate'
+
+  marshall_fire_description: >-
+    On December 30, 2021, the Marshall Fire broke out in Boulder County,
+    Colorado. The region was experiencing extremely strong winds and dry
+    conditions, creating a substantial risk of rapid and unpredictable
+    wildfire spread. These conditions posed a potential threat to nearby
+    residential communities.
+
+experiments:
+  # A1 = fire distance
+  # A2 = total population category
+  # A3 = median household income category
+  # A4 = white population composition
+  # A5 = direction relative to the fire
+  # A6 = initial evacuation alert
+  E1: ["A1", "A2", "A3", "A4", "A5", "A6"]
+  E2: ["A1", "A3", "A4", "A5", "A6"]
+  E3: ["A1", "A2", "A4", "A5", "A6"]
+  E4: ["A1", "A2", "A3", "A5", "A6"]
+  E5: ["A1", "A5", "A6"]
+  E6: ["A2", "A3", "A4", "A5", "A6"]
+  E7: ["A1", "A2", "A3", "A4", "A6"]
+  E8: ["A1", "A2", "A3", "A4", "A5"]
+  E9: ["A2", "A3", "A4"]
+
+logging:
+  print_prompts: true
