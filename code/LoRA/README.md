@@ -267,59 +267,20 @@ Refer to the repository-level `README.md`, `requirements.txt`, and `environment.
 The full training workflow requires:
 
 - A compatible CUDA environment.
-- An NVIDIA H200 GPU with BF16 support.
-- Access to the base model.
-- The required CSV and JSONL datasets.
+- An NVIDIA GPU with BF16 support (NVIDIA H200 recommended).
+- Access to the Meta-Llama-3.1-8B-Instruct base model.
+- The synthetic CSV and JSONL datasets provided in this repository.
+- A compatible container runtime and container image for Slurm-based execution.
 
-### 8.2 Data Validation
+### 8.2 Configure Paths
 
-Before training, validate the data for a specific fold:
-
-```bash
-python train_lora.py --fold 1 --check-data-only
-```
-
-This checks the required files, record counts, initial record alignment, and geographic separation without loading the model or requiring a GPU.
-
-### 8.3 Preflight Check
-
-To check tokenizer formatting, data alignment, padding, and training argument compatibility:
-
-```bash
-python train_lora.py --fold 1 --preflight-only
-```
-
-This checks a limited number of records using the actual tokenizer and training configuration without loading the full model or using a GPU. The base-model directory and tokenizer must be available.
-
-### 8.4 Smoke Test
-
-To execute a small end-to-end training test:
-
-```bash
-python train_lora.py --fold 1 --test-mode
-```
-
-The smoke test uses a limited data subset, 32 training examples, 16 validation examples, and a shortened one-epoch training schedule.
-
-It is intended to verify that the training pipeline executes successfully before running the full experiment.
-
-### 8.5 Full Training
-
-To train a specific fold directly:
-
-```bash
-python train_lora.py --fold 1
-```
-
-To execute all five folds using the provided Slurm job array:
-
-First, navigate to the LoRA directory:
+Before submitting the training jobs, navigate to the LoRA directory:
 
 ```bash
 cd code/LoRA
 ```
 
-Configure the dataset and model paths:
+Configure the dataset, model, output, and container paths:
 
 ```bash
 export DATA_DIR="$(realpath ../../data/synthetic/csv)"
@@ -329,20 +290,64 @@ export OUTPUT_ROOT="$(pwd)/outputs/training"
 export CONTAINER_IMAGE="/path/to/container.sif"
 ```
 
-Replace the model and container paths with the appropriate locations in your computing environment.
+Replace the example model and container paths with the appropriate locations in your computing environment.
 
-Create the log directory and submit the job:
+The following optional variables can also be configured when needed:
+
+```bash
+export CONTAINER_RUNTIME="singularity"
+export OVERLAY_FILE="/path/to/overlay.ext3"
+export CONTAINER_ENV_SCRIPT="/path/to/env.sh"
+```
+
+The default container runtime is Singularity. Overlay and environment initialization scripts are optional and depend on the target HPC environment.
+
+The dataset and model paths are passed to the training jobs through environment variables, without requiring modifications to the Python training script.
+
+### 8.3 Full Five-Fold Training
+
+The complete training experiment requires independently fine-tuning all five predefined spatial folds.
+
+The provided `run_training.slurm` script uses a Slurm job array to execute all five folds:
 
 ```bash
 mkdir -p slurm_logs
 sbatch run_training.slurm
 ```
 
-The Slurm script submits five fold-specific jobs using one GPU per job.
+The job array is configured as follows:
 
-Each job independently trains its corresponding fold and saves the resulting adapter.
+```bash
+#SBATCH --array=1-5%5
+```
 
-The Slurm resource directives and container configuration may need to be adjusted for different HPC systems.
+Each task is assigned to one fold:
+
+| Slurm Task | Training Fold |
+|---|---|
+| 1 | Fold 1 |
+| 2 | Fold 2 |
+| 3 | Fold 3 |
+| 4 | Fold 4 |
+| 5 | Fold 5 |
+
+Each fold is trained independently using one GPU. Up to five fold-specific jobs can run simultaneously, subject to available cluster resources.
+
+After all five jobs complete successfully, five fold-specific LoRA adapters will be available for the subsequent fine-tuned simulation workflow.
+
+### 8.4 Training Completion
+
+Job execution can be monitored using:
+
+```bash
+squeue -u "$USER"
+```
+
+The Slurm output and error logs are saved in the `slurm_logs/` directory.
+
+The training outputs are organized by fold under the configured output directory. Each fold should contain its corresponding `final_adapter/` directory after successful completion.
+
+All five fold-specific adapters are required for the complete five-fold fine-tuned simulation workflow.
 
 ## 9. Output Structure
 
